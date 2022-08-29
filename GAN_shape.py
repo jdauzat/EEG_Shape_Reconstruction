@@ -1,8 +1,14 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 import pickle
 
 import numpy as np
 import tensorflow as tf
 from PIL import Image
+
+"""
+Jenna's Note: This is where the multi-task GAN is created/used, and then semantic alignment for shape reconstruction.
+"""
 
 
 def one_hot(y_):

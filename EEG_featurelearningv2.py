@@ -28,13 +28,14 @@ def one_hot(y_):
 def compute_accuracy(v_xs, v_ys):
     global pred
     y_pre = sess.run(pred, feed_dict={xs: v_xs,})
-    correct_prediction = tf.equal(tf.argmax(y_pre,1), tf.argmax(v_ys,1))
-    accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
+    correct_prediction = tf.equal(tf.argmax(input=y_pre,axis=1), tf.argmax(input=v_ys,axis=1))
+    accuracy = tf.reduce_mean(input_tensor=tf.cast(correct_prediction, tf.float32))
     result = sess.run(accuracy, feed_dict={xs: v_xs, ground: v_ys})
     return result
 
 
 if __name__ == "__main__":
+    tf.compat.v1.disable_eager_execution()
 
     t1 = time.time()
     """
@@ -89,41 +90,50 @@ if __name__ == "__main__":
 
     """CNN classifier"""
 
-    xs = tf.placeholder(tf.float32, shape=[None, 140], name='input_EEG')
-    ground = tf.placeholder(tf.float32, shape=[None, n_class], name='ground_truth')
+    xs = tf.compat.v1.placeholder(tf.float32, shape=[None, 140], name='input_EEG')
+    ground = tf.compat.v1.placeholder(tf.float32, shape=[None, n_class], name='ground_truth')
 
     z_image = tf.reshape(xs, [-1, 10, 14, 1])
     depth_1 = 32
     depth_2 = 64
     out_dim = 40
-    conv1 = tf.layers.conv2d(inputs=z_image, filters=depth_1, kernel_size=[3, 3], padding="same", activation=tf.nn.relu)
-    pool1 = tf.layers.max_pooling2d(inputs=conv1, pool_size=[2, 2], strides=[2, 2])
+    conv1 = tf.compat.v1.layers.conv2d(inputs=z_image, filters=depth_1, kernel_size=[3, 3], padding="same", activation=tf.nn.relu)
+    # conv1 = tf.keras.layers.Conv2D(inputs=z_image, filters=depth_1, kernel_size=[3, 3], padding="same", activation=tf.nn.relu)
 
-    conv2 = tf.layers.conv2d(inputs=pool1, filters=depth_2, kernel_size=[3, 3], padding="same", activation=tf.nn.relu)
-    pool2 = tf.layers.max_pooling2d(inputs=conv2, pool_size=[2, 2], strides=[2, 2])
+    pool1 = tf.compat.v1.layers.max_pooling2d(inputs=conv1, pool_size=[2, 2], strides=[2, 2])
+    # pool1 = tf.keras.layers.MaxPooling2D(inputs=conv1, pool_size=[2, 2], strides=[2, 2])
 
-    flatten = tf.contrib.layers.flatten(pool2)
-    flatten = tf.nn.dropout(flatten, 0.5)
+    conv2 = tf.compat.v1.layers.conv2d(inputs=pool1, filters=depth_2, kernel_size=[3, 3], padding="same", activation=tf.nn.relu)
+    pool2 = tf.compat.v1.layers.max_pooling2d(inputs=conv2, pool_size=[2, 2], strides=[2, 2])
+    # conv2 = tf.keras.layers.Conv2D(inputs=pool1, filters=depth_2, kernel_size=[3, 3], padding="same", activation=tf.nn.relu)
+    # pool2 = tf.keras.layers.MaxPooling2D(inputs=conv2, pool_size=[2, 2], strides=[2, 2])
 
-    fea = tf.layers.dense(flatten, out_dim, activation=tf.nn.sigmoid)
+    flatten = tf.compat.v1.layers.flatten(pool2)
+    # flatten = tf.keras.layers.Flatten(pool2)
+    flatten = tf.nn.dropout(flatten, rate=1 - (0.5))
 
-    pred = tf.layers.dense(fea, n_class)
+    fea = tf.compat.v1.layers.dense(flatten, out_dim, activation=tf.nn.sigmoid)
+    # fea = tf.keras.layers.Dense(flatten, out_dim, activation=tf.nn.sigmoid)
+
+    pred = tf.compat.v1.layers.dense(fea, n_class)
+    # pred = tf.keras.layers.Dense(fea, n_class)
+
 
     # cost and accuracy
-    l2 = 0.0005 * sum(tf.nn.l2_loss(tf_var) for tf_var in tf.trainable_variables())
-    cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=pred, labels=ground))+l2
+    l2 = 0.0005 * sum(tf.nn.l2_loss(tf_var) for tf_var in tf.compat.v1.trainable_variables())
+    cost = tf.reduce_mean(input_tensor=tf.nn.softmax_cross_entropy_with_logits(logits=pred, labels=tf.stop_gradient(ground)))+l2
 
-    train_step = tf.train.AdamOptimizer(0.0005).minimize(cost)
+    train_step = tf.compat.v1.train.AdamOptimizer(0.0005).minimize(cost)
 
     # use this to limit the GPU number
 
     os.environ['CUDA_VISIBLE_DEVICES'] = '5'
 
-    config = tf.ConfigProto()
+    config = tf.compat.v1.ConfigProto()
     config.gpu_options.allow_growth = True
-    sess = tf.Session(config=config)
+    sess = tf.compat.v1.Session(config=config)
 
-    init = tf.global_variables_initializer()
+    init = tf.compat.v1.global_variables_initializer()
     sess.run(init)
 
     step = 1

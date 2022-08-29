@@ -1,0 +1,4 @@
+1. Run EEG_featurelearningv2.py
+   - This script will produce the following output file: shape_EEG_feature.pkl which contains the extracted EEG features from the raw file.
+2. Run GAN_shapev2.py
+   - This will use thee shape_EEG_feature.pkl file as input to the GAN.
